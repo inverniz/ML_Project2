@@ -61,3 +61,30 @@ def one_hot_gts(crops):
 def crop_and_one_hot(gts, patch=16):
     """ Crop and one hote encode the groundtruth images"""
     return np.array(one_hot_gts(crop_imgs(gts, patch, patch)))
+
+foreground_threshold = 0.25
+
+# assign a label to a patch
+def patch_to_label(patch):
+    df = np.mean(patch)
+    if df > foreground_threshold:
+        return 1
+    else:
+        return 0
+
+def mask_to_submission_strings(img_number, pred, img_size=608):
+    """Reads a single image and outputs the strings that should go into the submission file"""
+    patch_size = 16
+    for j in range(0, img_size, patch_size):
+        for i in range(0, img_size, patch_size):
+            label = pred(i*img_size+j)
+            yield("{:03d}_{}_{},{}".format(img_number, j, i, label))
+
+def create_submission(filename, model):
+    with open('filename', 'w') as f:
+        f.write('id,prediction\n')
+        for i in range(1, 51):
+            print("Predicting %d"%i)
+            im = mpimg.imread('/home/raph/ML_project2/test_set_images/test_%d/test_%d.png'%(i,i))
+            pred = model.predict(im[np.newaxis])
+            f.writelines('{}\n'.format(s) for s in mask_to_submission_strings(i, pred, im.shape[0]))
